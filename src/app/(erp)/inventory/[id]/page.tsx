@@ -87,11 +87,11 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
 
           <div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Selling Price</div>
-            <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--success)" }}>{fmt(product.sellingPrice)}</div>
+            <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--success)" }}>{fmt(Number(product.sellingPrice))}</div>
           </div>
           <div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Cost Price</div>
-            <div style={{ fontSize: "1rem", fontWeight: 500 }}>{fmt(product.costPrice)}</div>
+            <div style={{ fontSize: "1rem", fontWeight: 500 }}>{fmt(Number(product.costPrice))}</div>
           </div>
           <div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>Reorder Level</div>

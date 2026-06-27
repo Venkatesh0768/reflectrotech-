@@ -110,7 +110,7 @@ export default async function SalesOrderDetailsPage({ params }: { params: Promis
                       <div style={{ fontWeight: 500 }}>{line.product.name}</div>
                       <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>SKU: {line.product.sku}</div>
                     </td>
-                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{line.quantity}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(line.quantity)}</td>
                     <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(Number(line.unitPrice))}</td>
                     <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(line.discount)}%</td>
                     <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{fmt(Number(line.totalPrice))}</td>

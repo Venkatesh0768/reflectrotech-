@@ -103,8 +103,8 @@ export default async function PurchaseOrderDetailsPage({ params }: { params: Pro
                       <div style={{ fontWeight: 500 }}>{line.product.name}</div>
                       <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>SKU: {line.product.sku}</div>
                     </td>
-                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{line.quantity}</td>
-                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--success)" }}>{line.receivedQty}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(line.quantity)}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--success)" }}>{Number(line.receivedQty)}</td>
                     <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(Number(line.unitCost))}</td>
                     <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{fmt(Number(line.totalCost))}</td>
                   </tr>
