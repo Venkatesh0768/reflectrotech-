@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "rfe-erp-collection-v1",
+    "name": "RFE ERP System — Auth & Users",
+    "description": "Complete API collection for the RFE ERP System.\n\n## Setup\n1. Import this collection AND the `RFE-ERP-Environment.postman_environment.json` file.\n2. Select the **RFE ERP - Local** environment from the top-right dropdown.\n3. Start your dev server: `pnpm dev`\n4. Run **Signup** first, then **Login** — the login request auto-saves the session cookie.\n5. All authenticated requests use the cookie automatically.\n\n## Flow\n`Signup → Login → (use bearer token or cookie) → other requests`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-set after login"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints — signup, login, logout, current user",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@rfeerp.com\",\n  \"password\": \"Admin@12345\",\n  \"full_name\": \"ERP Admin\",\n  \"role\": \"admin\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Register a new user.\n\n**Roles:** `admin` | `manager` | `employee`\n\nThe `handle_new_user` DB trigger auto-creates the profile row.\n\nReturns `201` on success. If email confirmation is enabled in Supabase, `session` will be `null` until confirmed."
+          },
+          "response": [
+            {
+              "name": "201 — Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": \"uuid-here\",\n      \"email\": \"admin@rfeerp.com\"\n    },\n    \"session\": {\n      \"expires_at\": 9999999999\n    }\n  }\n}"
+            },
+            {
+              "name": "400 — Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"User already registered\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    if (body.data && body.data.user) {",
+                  "        pm.collectionVariables.set('userId', body.data.user.id);",
+                  "        console.log('Signed up user ID:', body.data.user.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@rfeerp.com\",\n  \"password\": \"Admin@12345\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sign in with email and password.\n\nSupabase SSR sets an httpOnly session cookie automatically. Postman will store and send it on subsequent requests.\n\nThe test script auto-saves the `userId` collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    if (body.data && body.data.user) {",
+                  "        pm.collectionVariables.set('userId', body.data.user.id);",
+                  "        console.log('Logged in. User ID saved:', body.data.user.id);",
+                  "        console.log('Role:', body.data.user.role);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": \"uuid-here\",\n      \"email\": \"admin@rfeerp.com\",\n      \"full_name\": \"ERP Admin\",\n      \"role\": \"admin\",\n      \"is_active\": true\n    },\n    \"session\": {\n      \"expires_at\": 9999999999\n    }\n  }\n}"
+            },
+            {
+              "name": "401 — Invalid credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Invalid login credentials\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Returns the authenticated user's profile and their full list of permissions.\n\nRequires: valid session cookie (set by Login)."
+          },
+          "response": [
+            {
+              "name": "200 — OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"uuid-here\",\n    \"email\": \"admin@rfeerp.com\",\n    \"full_name\": \"ERP Admin\",\n    \"role\": \"admin\",\n    \"is_active\": true,\n    \"permissions\": [\n      \"users:read\",\n      \"users:write\",\n      \"users:delete\",\n      \"inventory:read\",\n      \"orders:read\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Signs out the current user and clears the session cookie.\n\nRequires: valid session cookie."
+          },
+          "response": [
+            {
+              "name": "200 — OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"Logged out\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User management endpoints — list, get, update, deactivate",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                },
+                {
+                  "key": "role",
+                  "value": "employee",
+                  "description": "Filter by role: admin | manager | employee",
+                  "disabled": true
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "description": "Filter by active status: true | false",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "john",
+                  "description": "Search by name or email (case-insensitive)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns a paginated list of all users.\n\nRequires: **admin** role.\n\n**Query params:**\n- `page` — page number\n- `limit` — results per page (max 100)\n- `role` — filter by role\n- `active` — filter by active status (`true`/`false`)\n- `search` — fuzzy search on name or email"
+          },
+          "response": [
+            {
+              "name": "200 — OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"users\": [\n      {\n        \"id\": \"uuid-1\",\n        \"email\": \"alice@rfeerp.com\",\n        \"full_name\": \"Alice\",\n        \"role\": \"employee\",\n        \"is_active\": true\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 20,\n      \"total\": 1,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "description": "Returns a single user's profile.\n\nRequires: **admin** role, OR the user requesting their own profile.\n\n`{{userId}}` is auto-set after Login."
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Updated Name\",\n  \"department\": \"Engineering\",\n  \"phone\": \"+1-555-0100\",\n  \"employee_id\": \"EMP-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update a user's profile fields.\n\n**Updatable fields:** `full_name`, `employee_id`, `department`, `phone`, `avatar_url`\n\nRole change (`role` field) is **admin only**.\n\nRequires: **admin** or the user themselves."
+          }
+        },
+        {
+          "name": "Change User Role (Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"manager\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Change a user's role. Admin only.\n\n**Valid roles:** `admin` | `manager` | `employee`\n\nThis action is logged in `user_audit_log`."
+          }
+        },
+        {
+          "name": "Deactivate User (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "description": "Soft-deactivates a user (sets `is_active = false`).\n\nThe user record is NOT deleted from the database.\n\nRequires: **admin** role.\n\n⚠️ An admin cannot deactivate themselves."
+          }
+        },
+        {
+          "name": "Get User Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "permissions"]
+            },
+            "description": "Returns all permission strings assigned to a user based on their role.\n\nRequires: **admin** role, OR the user requesting their own permissions."
+          },
+          "response": [
+            {
+              "name": "200 — OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user_id\": \"uuid-here\",\n    \"full_name\": \"ERP Admin\",\n    \"role\": \"admin\",\n    \"permissions\": [\n      \"users:read\",\n      \"users:write\",\n      \"users:delete\",\n      \"inventory:read\",\n      \"inventory:write\",\n      \"inventory:delete\",\n      \"orders:read\",\n      \"orders:write\",\n      \"orders:delete\",\n      \"reports:read\",\n      \"settings:write\"\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🧪 Test Scenarios",
+      "description": "Pre-built requests to test error cases and edge cases",
+      "item": [
+        {
+          "name": "Signup — Missing Fields (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@rfeerp.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Should return 400 — email, password and full_name are all required."
+          }
+        },
+        {
+          "name": "Signup — Short Password (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@rfeerp.com\",\n  \"password\": \"123\",\n  \"full_name\": \"Test User\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Should return 400 — password must be at least 8 characters."
+          }
+        },
+        {
+          "name": "Login — Wrong Password (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@rfeerp.com\",\n  \"password\": \"wrongpassword\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Should return 401 — invalid credentials."
+          }
+        },
+        {
+          "name": "Get Me — Unauthenticated (expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Call without a session cookie. Should return 401."
+          }
+        },
+        {
+          "name": "List Users — No Auth (expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            },
+            "description": "Should return 401 — no session cookie."
+          }
+        },
+        {
+          "name": "List Users — Invalid Role Filter (expect 400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?role=superuser",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [{ "key": "role", "value": "superuser" }]
+            },
+            "description": "Should return 400 — superuser is not a valid role."
+          }
+        },
+        {
+          "name": "Update User — Invalid Role (expect 400)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"superuser\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Should return 400 — superuser is not a valid role value."
+          }
+        }
+      ]
+    }
+  ]
+}
