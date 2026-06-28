@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Users2, Plus, Search } from "lucide-react";
 import Link from "next/link";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Employee {
   id: number; designation: string; department: string; joinDate: string; baseSalary: string;
@@ -26,19 +27,40 @@ export function HRMClient() {
   const [loading, setLoading]       = useState(false);
   const [search, setSearch]         = useState("");
 
+  const [empPage, setEmpPage]             = useState(1);
+  const [empTotalPages, setEmpTotalPages] = useState(1);
+  const [leavePage, setLeavePage]         = useState(1);
+  const [leaveTotalPages, setLeaveTotalPages] = useState(1);
+
+  async function fetchEmployees(p = empPage) {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/employees?page=${p}&limit=20`);
+      const json = await res.json();
+      if (json.success) {
+        setEmployees(json.data);
+        setEmpTotalPages(json.meta.pages);
+      }
+    } catch {}
+    finally { setLoading(false); }
+  }
+
+  async function fetchLeaves(p = leavePage) {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/leaves?page=${p}&limit=20`);
+      const json = await res.json();
+      if (json.success) {
+        setLeaves(json.data);
+        setLeaveTotalPages(json.meta.pages);
+      }
+    } catch {}
+    finally { setLoading(false); }
+  }
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const [empRes, leaveRes] = await Promise.all([
-          fetch("/api/employees").then((r) => r.json()),
-          fetch("/api/leaves").then((r) => r.json()),
-        ]);
-        if (empRes.success)   setEmployees(empRes.data);
-        if (leaveRes.success) setLeaves(leaveRes.data);
-      } catch {}
-      finally { setLoading(false); }
-    })();
+    fetchEmployees();
+    fetchLeaves();
   }, []);
 
   const filteredEmp = employees.filter((e) =>
@@ -91,10 +113,12 @@ export function HRMClient() {
               </tbody>
             </table>
           </div>
+          <Pagination page={empPage} totalPages={empTotalPages} onPageChange={(p) => { setEmpPage(p); fetchEmployees(p); }} />
         </>
       )}
 
       {tab === "Leaves" && (
+        <>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Reason</th></tr></thead>
@@ -115,6 +139,8 @@ export function HRMClient() {
             </tbody>
           </table>
         </div>
+        <Pagination page={leavePage} totalPages={leaveTotalPages} onPageChange={(p) => { setLeavePage(p); fetchLeaves(p); }} />
+      </>
       )}
 
       {tab === "Payroll" && (

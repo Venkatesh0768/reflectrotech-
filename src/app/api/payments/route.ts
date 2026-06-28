@@ -25,8 +25,18 @@ export async function GET(request: NextRequest) {
     ...(refId && type === "sales_order"    && { salesOrderId:    parseInt(refId) }),
     ...(refId && type === "purchase_order" && { purchaseOrderId: parseInt(refId) }),
   };
-  const payments = await prisma.payment.findMany({ where, orderBy: { paidAt: "desc" } });
-  return Response.json({ success: true, data: payments });
+  const page   = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") ?? "1"));
+  const limit  = Math.min(100, parseInt(request.nextUrl.searchParams.get("limit") ?? "20"));
+  const [payments, total] = await Promise.all([
+    prisma.payment.findMany({
+      where,
+      orderBy: { paidAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.payment.count({ where }),
+  ]);
+  return Response.json({ success: true, data: payments, meta: { total, page, limit, pages: Math.ceil(total / limit) } });
 }
 
 export async function POST(request: NextRequest) {

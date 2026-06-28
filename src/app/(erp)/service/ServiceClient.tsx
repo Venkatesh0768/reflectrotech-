@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Wrench, Eye } from "lucide-react";
 import Link from "next/link";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface ServiceJob {
   id: number; jobNumber: string; status: string; deviceName: string; deviceModel?: string;
@@ -21,14 +22,20 @@ export function ServiceClient() {
   const [total, setTotal]     = useState(0);
   const [status, setStatus]   = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage]       = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  async function fetchJobs(s = status) {
+  async function fetchJobs(s = status, p = page) {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "30", ...(s && { status: s }) });
+      const params = new URLSearchParams({ limit: "30", page: p.toString(), ...(s && { status: s }) });
       const res  = await fetch(`/api/service-jobs?${params}`);
       const json = await res.json();
-      if (json.success) { setJobs(json.data); setTotal(json.meta.total); }
+      if (json.success) { 
+        setJobs(json.data); 
+        setTotal(json.meta.total); 
+        setTotalPages(json.meta.pages);
+      }
     } catch {}
     finally { setLoading(false); }
   }
@@ -43,7 +50,11 @@ export function ServiceClient() {
       </div>
 
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <select className="form-select" style={{ width: "auto" }} value={status} onChange={(e) => { setStatus(e.target.value); fetchJobs(e.target.value); }}>
+        <select className="form-select" style={{ width: "auto" }} value={status} onChange={(e) => { 
+          setStatus(e.target.value); 
+          setPage(1);
+          fetchJobs(e.target.value, 1); 
+        }}>
           <option value="">All Statuses</option>
           {["received","diagnosing","waiting_parts","in_repair","ready","delivered","cancelled"].map((s) => (
             <option key={s} value={s} style={{ textTransform: "capitalize" }}>{s.replace("_", " ")}</option>
@@ -76,6 +87,7 @@ export function ServiceClient() {
           </tbody>
         </table>
       </div>
+      <Pagination page={page} totalPages={totalPages} onPageChange={(p) => { setPage(p); fetchJobs(status, p); }} />
     </div>
   );
 }

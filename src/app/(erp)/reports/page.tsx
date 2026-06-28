@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BarChart3 } from "lucide-react";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Reports" };
 
@@ -18,13 +19,13 @@ export default function ReportsPage() {
           { title: "Finance Report",  desc: "P&L, cash flow, expense breakdown",          href: "/reports/finance",  color: "var(--danger)", bgColor: "var(--danger-muted)" },
           { title: "Service Report",  desc: "Job completion rates, revenue from service", href: "/reports/service",  color: "var(--text-primary)", bgColor: "var(--surface-3)" },
         ].map((r) => (
-          <a key={r.href} href={r.href} className="kpi-card" style={{ textDecoration: "none", cursor: "pointer" }}>
+          <Link key={r.href} href={r.href} className="kpi-card" style={{ textDecoration: "none", cursor: "pointer" }}>
             <div className="kpi-icon" style={{ background: r.bgColor }}>
               <BarChart3 size={20} color={r.color} />
             </div>
             <h3 style={{ marginTop: "0.5rem" }}>{r.title}</h3>
             <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem" }}>{r.desc}</p>
-          </a>
+          </Link>
         ))}
       </div>
     </div>

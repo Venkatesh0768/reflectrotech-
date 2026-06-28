@@ -14,7 +14,7 @@ const PROTECTED_PREFIXES = [
   "/service", "/production", "/reports", "/settings",
 ];
 
-const AUTH_PAGES = ["/login", "/signup"];
+const AUTH_PAGES = ["/login"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

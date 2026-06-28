@@ -106,6 +106,14 @@ enum ServiceJobStatus {
   @@map("service_job_status")
 }
 
+enum ProductionOrderStatus {
+  draft
+  in_progress
+  completed
+  cancelled
+  @@map("production_order_status")
+}
+
 // ─────────────────────────────────────────────────────────────
 // MODULE 1 — AUTH & USER MANAGEMENT
 // ─────────────────────────────────────────────────────────────
@@ -132,6 +140,7 @@ model Profile {
   createdProducts    Product[]          @relation("ProductCreatedBy")
   stockAdjustments   StockMovement[]    @relation("StockMovedBy")
   serviceJobs        ServiceJob[]       @relation("ServiceAssignedTo")
+  productionOrders   ProductionOrder[]
 
   @@map("profiles")
 }
@@ -213,6 +222,8 @@ model Product {
   purchaseOrderLines PurchaseOrderLine[]
   salesOrderLines  SalesOrderLine[]
   serviceJobParts  ServiceJobPart[]
+  boms               BillOfMaterial[]
+  bomLines           BillOfMaterialLine[]
 
   @@map("products")
 }
@@ -546,4 +557,53 @@ model Payroll {
 
   @@unique([employeeId, month, year])
   @@map("payrolls")
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODULE 9 — MANUFACTURING & PRODUCTION
+// ─────────────────────────────────────────────────────────────
+
+model BillOfMaterial {
+  id          Int      @id @default(autoincrement())
+  productId   Int      @map("product_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  product     Product  @relation(fields: [productId], references: [id])
+  lines       BillOfMaterialLine[]
+  productionOrders ProductionOrder[]
+
+  @@map("bill_of_materials")
+}
+
+model BillOfMaterialLine {
+  id              Int      @id @default(autoincrement())
+  bomId           Int      @map("bom_id")
+  rawMaterialId   Int      @map("raw_material_id")
+  quantity        Decimal  @db.Decimal(12, 2)
+
+  bom         BillOfMaterial @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  rawMaterial Product        @relation(fields: [rawMaterialId], references: [id])
+
+  @@map("bill_of_material_lines")
+}
+
+model ProductionOrder {
+  id             Int                   @id @default(autoincrement())
+  orderNumber    String                @unique @map("order_number")
+  bomId          Int                   @map("bom_id")
+  status         ProductionOrderStatus @default(draft)
+  targetQuantity Decimal               @map("target_quantity") @db.Decimal(12, 2)
+  startDate      DateTime              @map("start_date") @db.Date
+  endDate        DateTime?             @map("end_date") @db.Date
+  createdById    String?               @map("created_by_id") @db.Uuid
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  bom       BillOfMaterial @relation(fields: [bomId], references: [id])
+  createdBy Profile?       @relation(fields: [createdById], references: [id])
+
+  @@map("production_orders")
 }

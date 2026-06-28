@@ -17,12 +17,19 @@ export async function GET(request: NextRequest) {
   if (isResponse(profile)) return profile;
   const status = request.nextUrl.searchParams.get("status");
   const where  = status ? { status: status as any } : {};
-  const leaves = await prisma.leave.findMany({
-    where,
-    include: { employee: { include: { profile: { select: { fullName: true } } } } },
-    orderBy: { createdAt: "desc" },
-  });
-  return Response.json({ success: true, data: leaves });
+  const page   = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") ?? "1"));
+  const limit  = Math.min(100, parseInt(request.nextUrl.searchParams.get("limit") ?? "20"));
+  const [leaves, total] = await Promise.all([
+    prisma.leave.findMany({
+      where,
+      include: { employee: { include: { profile: { select: { fullName: true } } } } },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.leave.count({ where }),
+  ]);
+  return Response.json({ success: true, data: leaves, meta: { total, page, limit, pages: Math.ceil(total / limit) } });
 }
 
 export async function POST(request: NextRequest) {

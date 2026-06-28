@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DollarSign, TrendingDown, Plus, RefreshCw } from "lucide-react";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Payment { id: number; referenceType: string; amount: string; method: string; paidAt: string; notes?: string; }
 interface Expense { id: number; title: string; amount: string; category: string; method: string; expenseDate: string; }
@@ -22,14 +23,26 @@ export function FinanceClient() {
   const [saving, setSaving]       = useState(false);
   const [expForm, setExpForm]     = useState({ title: "", amount: "", category: "Office", method: "cash" as const, expenseDate: new Date().toISOString().slice(0,10), notes: "" });
 
-  async function fetchPayments() {
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [paymentTotalPages, setPaymentTotalPages] = useState(1);
+  const [expensePage, setExpensePage] = useState(1);
+  const [expenseTotalPages, setExpenseTotalPages] = useState(1);
+
+  async function fetchPayments(p = paymentPage) {
     setLoading(true);
     try { const r = await fetch("/api/payments"); const j = await r.json(); if (j.success) setPayments(j.data); } catch {}
     finally { setLoading(false); }
   }
-  async function fetchExpenses() {
+  async function fetchExpenses(p = expensePage) {
     setLoading(true);
-    try { const r = await fetch("/api/expenses"); const j = await r.json(); if (j.success) setExpenses(j.data); } catch {}
+    try { 
+      const r = await fetch(`/api/expenses?page=${p}&limit=20`); 
+      const j = await r.json(); 
+      if (j.success) {
+        setExpenses(j.data);
+        setExpenseTotalPages(j.meta.pages);
+      }
+    } catch {}
     finally { setLoading(false); }
   }
 
@@ -94,6 +107,7 @@ export function FinanceClient() {
       )}
 
       {tab === "Payments" && (
+        <>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Type</th><th>Amount</th><th>Method</th><th>Date</th><th>Notes</th></tr></thead>
@@ -112,9 +126,12 @@ export function FinanceClient() {
             </tbody>
           </table>
         </div>
+        <Pagination page={paymentPage} totalPages={paymentTotalPages} onPageChange={(p) => { setPaymentPage(p); fetchPayments(p); }} />
+      </>
       )}
 
       {tab === "Expenses" && (
+        <>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Title</th><th>Category</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
@@ -133,6 +150,8 @@ export function FinanceClient() {
             </tbody>
           </table>
         </div>
+        <Pagination page={expensePage} totalPages={expenseTotalPages} onPageChange={(p) => { setExpensePage(p); fetchExpenses(p); }} />
+      </>
       )}
 
       {/* Add Expense Modal */}
